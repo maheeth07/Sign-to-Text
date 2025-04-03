@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GestureSpeak</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .dashboard {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            padding: 20px;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            letter-spacing: 1px;
+        }
+
+        .header .status {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .main-content {
+            padding: 30px;
+            display: grid;
+            gap: 25px;
+        }
+
+        .video-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .video-container {
+            position: relative;
+            background: #222;
+            border-radius: 15px;
+            z-index: 10;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .video-container:hover {
+            transform: scale(1.02);
+        }
+
+        #videoFeed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .button {
+            padding: 12px;
+            background: #4facfe;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .button:hover {
+            background: #00f2fe;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .button.active {
+            background: #ff6b6b;
+        }
+
+        .stats {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-item span {
+            display: block;
+            font-size: 1.5em;
+            color: #4facfe;
+            font-weight: 600;
+        }
+
+        .text-output {
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            min-height: 120px;
+            border: 2px dashed #ddd;
+            font-size: 1.1em;
+            color: #333;
+            transition: border-color 0.3s ease;
+        }
+
+        .text-output.active {
+            border-color: #4facfe;
+        }
+
+        @media (max-width: 768px) {
+            .video-section {
+                grid-template-columns: 1fr;
+            }
+            .main-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>GestureSpeak</h1>
+            <div class="status" id="status">Initializing...</div>
+        </div>
+        <div class="main-content">
+            <div class="video-section">
+                <div class="video-container">
+                    <img id="videoFeed" src="" alt="Video feed will start when camera is started"></video>
+                </div>
+                <div class="controls">
+                    <button class="button" id="startBtn" onclick="startCamera()">Start Detection</button>
+                    <button class="button" id="stopBtn" onclick="stopCamera()">Stop Detection</button>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <span id="gesture">-</span>
+                    Output Detected
+                </div>
+                <div class="stat-item">
+                    <span id="accuracy">0%</span>
+                    Accuracy
+                </div>
+            </div>
+            <div class="text-output" id="textOutput">
+                Show gestures to begin detection...
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        let videoStarted = false;
+        let intervalId = null;
+
+        async function startCamera() {
+            if (!videoStarted) {
+                const response = await fetch('/start_camera');
+                const data = await response.json();
+                console.log(data.status);
+
+                if (data.status === "Camera started") {
+                    document.getElementById('videoFeed').src = "/video_feed";
+                    intervalId = setInterval(updateOutput, 10);
+                    videoStarted = true;
+                    document.getElementById('status').innerText = "Camera Started...";
+                }
+            }
+        }
+
+        async function stopCamera() {
+            if (videoStarted) {
+                const response = await fetch('/stop_camera');
+                const data = await response.json();
+                console.log(data.status);
+
+                if (data.status === "Camera stopped") {
+                    document.getElementById('videoFeed').src = "";
+                    clearInterval(intervalId);
+                    videoStarted = false;
+                    document.getElementById('status').innerText = "Camera Stopped.";
+                }
+            }
+        }
+
+        
+        async function updateOutput() {
+            const response = await fetch('/get_output');
+            const data = await response.json();
+            console.log("res[p]", data);
+            document.getElementById('accuracy').innerText = data.accuracy || '0%';
+            document.getElementById('gesture').innerText = data.sentence || '-';
+        }
+    
+        // function startVideo() {
+        //     document.getElementById('videoFeed').src = "/video_feed";
+        //     setInterval(updateOutput, 10);
+        // }
+    
+        // window.onload = startVideo;
+    </script>
+
+</body>
+</html>
